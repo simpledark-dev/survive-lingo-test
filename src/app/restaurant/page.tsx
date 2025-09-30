@@ -553,7 +553,7 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
 
     // Show floating delta on avatar
     setSatisfactionDelta(satisfactionChange);
-    setTimeout(() => setSatisfactionDelta(null), 1500);
+    setTimeout(() => setSatisfactionDelta(null), 2000);
 
     // Update score
     if (newState !== currentCustomer.state) {
@@ -710,355 +710,418 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-100 to-red-100">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm p-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-orange-600">
-            🍜 Restaurant Game
-          </h1>
-          <div className="flex gap-4">
-            <Link
-              href="/"
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Chat Demo
-            </Link>
-            <Link
-              href="/restaurant"
-              className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-            >
-              Restaurant Game
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      <div className="p-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Game Header */}
-          <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-orange-600">
-                🍜 Restaurant Game
-              </h2>
-              <div className="flex gap-4">
-                <div className="text-sm">
-                  <span className="font-semibold">Điểm:</span> {gameScore}
-                </div>
-                <div className="text-sm">
-                  <span className="font-semibold">Hài lòng:</span>{" "}
-                  {currentCustomer?.satisfaction}%
-                </div>
-                <button
-                  onClick={() => setShowDebug(!showDebug)}
-                  className="text-sm bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600"
-                >
-                  {showDebug ? "Ẩn Debug" : "Debug"}
-                </button>
-              </div>
+    <>
+      <style jsx>{`
+        @keyframes satisfactionFloat {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, 0) scale(0.5);
+          }
+          20% {
+            opacity: 1;
+            transform: translate(-50%, -10px) scale(1.2);
+          }
+          80% {
+            opacity: 1;
+            transform: translate(-50%, -30px) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -50px) scale(0.8);
+          }
+        }
+      `}</style>
+      <div className="min-h-screen bg-gradient-to-br from-orange-100 to-red-100">
+        {/* Navigation */}
+        <nav className="bg-white shadow-sm p-4">
+          <div className="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 className="text-xl font-bold text-orange-600">
+              🍜 Restaurant Game
+            </h1>
+            <div className="flex gap-4">
+              <Link
+                href="/"
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Chat Demo
+              </Link>
+              <Link
+                href="/restaurant"
+                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+              >
+                Restaurant Game
+              </Link>
             </div>
           </div>
+        </nav>
 
-          {/* Debug Panel */}
-          {showDebug && lastAIResponse && (
-            <div className="bg-gray-900 text-green-400 rounded-lg shadow-lg p-4 mb-4 font-mono text-sm">
-              <h3 className="text-lg font-semibold mb-2 text-white">
-                🤖 AI Response Debug:
-              </h3>
-              <div className="space-y-2">
-                <div>
-                  <span className="text-yellow-400">State:</span>{" "}
-                  {lastAIResponse.state || "N/A"}
-                </div>
-                <div>
-                  <span className="text-yellow-400">Satisfaction Change:</span>{" "}
-                  {lastAIResponse.satisfaction_change || 0}
-                </div>
-                <div>
-                  <span className="text-yellow-400">Intent:</span>{" "}
-                  {lastAIResponse.intent || "N/A"}
-                </div>
-                {lastAIResponse.party_size && (
-                  <div>
-                    <span className="text-yellow-400">Party Size:</span>{" "}
-                    {lastAIResponse.party_size}
+        <div className="p-4">
+          <div className="max-w-6xl mx-auto">
+            {/* Game Header */}
+            <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-orange-600">
+                  🍜 Restaurant Game
+                </h2>
+                <div className="flex gap-4">
+                  <div className="text-sm">
+                    <span className="font-semibold">Điểm:</span> {gameScore}
                   </div>
-                )}
-                {lastAIResponse.order_items && (
-                  <div>
-                    <span className="text-yellow-400">Order Items:</span>{" "}
-                    {lastAIResponse.order_items}
+                  <div className="text-sm">
+                    <span className="font-semibold">Hài lòng:</span>{" "}
+                    {currentCustomer?.satisfaction}%
                   </div>
-                )}
-                <div className="mt-2 p-2 bg-gray-800 rounded">
-                  <span className="text-yellow-400">Raw JSON:</span>
-                  <pre className="mt-1 text-xs overflow-x-auto">
-                    {JSON.stringify(lastAIResponse, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Restaurant Info */}
-            <div className="bg-white rounded-lg shadow-lg p-4">
-              <h2 className="text-lg font-semibold mb-3">
-                🏪 Thông tin nhà hàng
-              </h2>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-semibold">Món có sẵn:</span>
-                  <ul className="ml-2">
-                    {restaurantInfo.availableDishes.map((dish, index) => (
-                      <li key={index}>• {dish}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <span className="font-semibold">Hết món:</span>
-                  <ul className="ml-2">
-                    {restaurantInfo.soldOutDishes.map((dish, index) => (
-                      <li key={index}>• {dish}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <span className="font-semibold">Bàn trống:</span>{" "}
-                  {restaurantInfo.emptyTables.length}
-                </div>
-                <div>
-                  <span className="font-semibold">Giờ mở cửa:</span>{" "}
-                  {restaurantInfo.openingHours}
+                  <button
+                    onClick={() => setShowDebug(!showDebug)}
+                    className="text-sm bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600"
+                  >
+                    {showDebug ? "Ẩn Debug" : "Debug"}
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Game Area */}
-            <div className="lg:col-span-2">
-              {/* Characters */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-4">
-                <div className="flex items-center justify-between mb-4">
-                  {/* Customer (Left) */}
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="relative">
-                      {/* Customer Avatar */}
-                      <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center text-2xl">
-                        👤
-                      </div>
+            {/* Debug Panel */}
+            {showDebug && lastAIResponse && (
+              <div className="bg-gray-900 text-green-400 rounded-lg shadow-lg p-4 mb-4 font-mono text-sm">
+                <h3 className="text-lg font-semibold mb-2 text-white">
+                  🤖 AI Response Debug:
+                </h3>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-yellow-400">State:</span>{" "}
+                    {lastAIResponse.state || "N/A"}
+                  </div>
+                  <div>
+                    <span className="text-yellow-400">
+                      Satisfaction Change:
+                    </span>{" "}
+                    {lastAIResponse.satisfaction_change || 0}
+                  </div>
+                  <div>
+                    <span className="text-yellow-400">Intent:</span>{" "}
+                    {lastAIResponse.intent || "N/A"}
+                  </div>
+                  {lastAIResponse.party_size && (
+                    <div>
+                      <span className="text-yellow-400">Party Size:</span>{" "}
+                      {lastAIResponse.party_size}
+                    </div>
+                  )}
+                  {lastAIResponse.order_items && (
+                    <div>
+                      <span className="text-yellow-400">Order Items:</span>{" "}
+                      {lastAIResponse.order_items}
+                    </div>
+                  )}
+                  <div className="mt-2 p-2 bg-gray-800 rounded">
+                    <span className="text-yellow-400">Raw JSON:</span>
+                    <pre className="mt-1 text-xs overflow-x-auto">
+                      {JSON.stringify(lastAIResponse, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            )}
 
-                      {/* Floating satisfaction delta */}
-                      {satisfactionDelta !== null && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Restaurant Info */}
+              <div className="bg-white rounded-lg shadow-lg p-4">
+                <h2 className="text-lg font-semibold mb-3">
+                  🏪 Thông tin nhà hàng
+                </h2>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="font-semibold">Món có sẵn:</span>
+                    <ul className="ml-2">
+                      {restaurantInfo.availableDishes.map((dish, index) => (
+                        <li key={index}>• {dish}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Hết món:</span>
+                    <ul className="ml-2">
+                      {restaurantInfo.soldOutDishes.map((dish, index) => (
+                        <li key={index}>• {dish}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Bàn trống:</span>{" "}
+                    {restaurantInfo.emptyTables.length}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Giờ mở cửa:</span>{" "}
+                    {restaurantInfo.openingHours}
+                  </div>
+                </div>
+              </div>
+
+              {/* Game Area */}
+              <div className="lg:col-span-2">
+                {/* Characters */}
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    {/* Customer (Left) */}
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="relative">
+                        {/* Customer Avatar */}
                         <div
-                          className={`absolute -top-6 left-1/2 transform -translate-x-1/2 text-sm font-bold transition-opacity duration-700 animate-bounce ${
-                            satisfactionDelta >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
+                          className={`w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center text-2xl transition-all duration-300 ${
+                            satisfactionDelta !== null
+                              ? satisfactionDelta >= 0
+                                ? "ring-4 ring-green-300 ring-opacity-75 scale-110"
+                                : "ring-4 ring-red-300 ring-opacity-75 scale-110"
+                              : ""
                           }`}
                         >
-                          {satisfactionDelta >= 0
-                            ? `+${satisfactionDelta}`
-                            : `${satisfactionDelta}`}
+                          👤
                         </div>
-                      )}
 
-                      {/* Customer Speech Bubble */}
-                      <div className="absolute -top-full left-1/2 translate-y-5 transform -translate-x-1/2 bg-white border-2 border-gray-300 rounded-lg p-3 shadow-lg max-w-xs min-w-md">
-                        <div className="flex items-start gap-2">
-                          <div className="text-sm font-medium text-gray-800 flex-1">
-                            {getCustomerSpeechBubble()}
-                          </div>
-                          <button
-                            onClick={() =>
-                              handleSpeak(getCustomerSpeechBubble())
-                            }
-                            disabled={isSpeaking}
-                            className={`px-4 py-2 text-white rounded-lg flex items-center gap-2 ${
-                              isSpeaking
-                                ? "bg-gray-400 cursor-not-allowed"
-                                : "bg-purple-500 hover:bg-purple-600"
+                        {/* Floating satisfaction delta */}
+                        {satisfactionDelta !== null && (
+                          <div
+                            className={`absolute -top-20 left-1/2 transform -translate-x-1/2 text-lg font-bold z-50 ${
+                              satisfactionDelta >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
                             }`}
+                            style={{
+                              animation:
+                                "satisfactionFloat 2s ease-out forwards",
+                            }}
                           >
-                            {isSpeaking ? (
-                              <>
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </>
-                            ) : (
-                              <>
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.816L4.383 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.383l4-4.816A1 1 0 019.383 3.076zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
-                          <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Player (Right) */}
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="relative">
-                      {/* Player Avatar */}
-                      <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center text-2xl">
-                        👨‍💼
-                      </div>
-
-                      {/* Player Speech Bubble (if there's a recent message) */}
-                      {messages.length > 0 &&
-                        messages[messages.length - 1].role === "user" && (
-                          <div className="absolute -top-16 right-1/2 transform translate-x-1/2 bg-orange-100 border-2 border-orange-300 rounded-lg p-3 shadow-lg max-w-xs min-w-md">
-                            <div className="text-sm font-medium text-gray-800">
-                              {messages[messages.length - 1].content}
-                            </div>
-                            <div className="absolute bottom-0 right-1/2 transform translate-x-1/2 translate-y-full">
-                              <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-orange-100"></div>
+                            <div
+                              className={`px-3 py-1 rounded-full shadow-lg ${
+                                satisfactionDelta >= 0
+                                  ? "bg-green-100 border-2 border-green-300"
+                                  : "bg-red-100 border-2 border-red-300"
+                              }`}
+                            >
+                              {satisfactionDelta >= 0
+                                ? `+${satisfactionDelta}`
+                                : `${satisfactionDelta}`}
                             </div>
                           </div>
                         )}
-                    </div>
-                  </div>
-                </div>
 
-                <div className="flex justify-between">
-                  {/* Customer Info */}
-                  <div className="text-center flex-1">
-                    <h3 className="text-lg font-semibold">
-                      {currentCustomer?.name} {currentCustomer?.language.flag}
-                    </h3>
-                    <div className="flex items-center justify-center gap-2 mt-2">
-                      <span className="text-2xl">{getCustomerEmotion()}</span>
-                      <span className="text-sm text-gray-600">
-                        {currentCustomer?.satisfaction}% hài lòng
-                      </span>
-                    </div>
-                    <div className="mt-2">
-                      <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded uppercase font-semibold">
-                        {currentCustomer?.state.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Player Info */}
-                  <div className="text-center flex-1">
-                    <h3 className="text-lg font-semibold">Nhân viên phục vụ</h3>
-                    <div className="flex items-center justify-center gap-2 mt-2">
-                      <span className="text-2xl">😊</span>
-                      <span className="text-sm text-gray-600">
-                        Đang phục vụ
-                      </span>
-                    </div>
-                    <div className="mt-2">
-                      <span className="text-sm bg-orange-100 text-orange-800 px-2 py-1 rounded uppercase font-semibold">
-                        Nhân viên
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Chat Interface */}
-              <div className="bg-white rounded-lg shadow-lg p-4">
-                <h3 className="text-lg font-semibold mb-3">💬 Hội thoại</h3>
-
-                {/* Messages */}
-                <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
-                  {messages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${
-                        message.role === "user"
-                          ? "justify-end"
-                          : "justify-start"
-                      }`}
-                    >
-                      <div
-                        className={`max-w-xs px-3 py-2 rounded-lg ${
-                          message.role === "user"
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-200 text-gray-800"
-                        }`}
-                      >
-                        <div className="text-sm  mb-1 font-semibold">
-                          {message.role === "user" ? "Bạn" : "Khách hàng"}
-                        </div>
-                        <div className="text-sm">{message.content}</div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Loading indicator */}
-                  {isLoading && (
-                    <div className="flex justify-start">
-                      <div className="max-w-xs px-3 py-2 rounded-lg bg-gray-200 text-gray-800">
-                        <div className="text-sm font-medium mb-1">
-                          Khách hàng
-                        </div>
-                        <div className="text-sm flex items-center gap-1">
-                          <span>Đang suy nghĩ</span>
-                          <div className="flex gap-1">
-                            <div className="w-1 h-1 bg-gray-600 rounded-full animate-bounce"></div>
-                            <div
-                              className="w-1 h-1 bg-gray-600 rounded-full animate-bounce"
-                              style={{ animationDelay: "0.1s" }}
-                            ></div>
-                            <div
-                              className="w-1 h-1 bg-gray-600 rounded-full animate-bounce"
-                              style={{ animationDelay: "0.2s" }}
-                            ></div>
+                        {/* Customer Speech Bubble */}
+                        <div className="absolute -top-full left-1/2 translate-y-5 transform -translate-x-1/2 bg-white border-2 border-gray-300 rounded-lg p-3 shadow-lg max-w-xs min-w-md">
+                          <div className="flex items-start gap-2">
+                            <div className="text-sm font-medium text-gray-800 flex-1">
+                              {getCustomerSpeechBubble()}
+                            </div>
+                            <button
+                              onClick={() =>
+                                handleSpeak(getCustomerSpeechBubble())
+                              }
+                              disabled={isSpeaking}
+                              className={`px-4 py-2 text-white rounded-lg flex items-center gap-2 ${
+                                isSpeaking
+                                  ? "bg-gray-400 cursor-not-allowed"
+                                  : "bg-purple-500 hover:bg-purple-600"
+                              }`}
+                            >
+                              {isSpeaking ? (
+                                <>
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                </>
+                              ) : (
+                                <>
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.816L4.383 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.383l4-4.816A1 1 0 019.383 3.076zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                            <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white"></div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  )}
+
+                    {/* Player (Right) */}
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="relative">
+                        {/* Player Avatar */}
+                        <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center text-2xl">
+                          👨‍💼
+                        </div>
+
+                        {/* Player Speech Bubble (if there's a recent message) */}
+                        {messages.length > 0 &&
+                          messages[messages.length - 1].role === "user" && (
+                            <div className="absolute -top-16 right-1/2 transform translate-x-1/2 bg-orange-100 border-2 border-orange-300 rounded-lg p-3 shadow-lg max-w-xs min-w-md">
+                              <div className="text-sm font-medium text-gray-800">
+                                {messages[messages.length - 1].content}
+                              </div>
+                              <div className="absolute bottom-0 right-1/2 transform translate-x-1/2 translate-y-full">
+                                <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-orange-100"></div>
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between">
+                    {/* Customer Info */}
+                    <div className="text-center flex-1">
+                      <h3 className="text-lg font-semibold">
+                        {currentCustomer?.name} {currentCustomer?.language.flag}
+                      </h3>
+                      <div className="flex items-center justify-center gap-2 mt-2">
+                        <span className="text-2xl transition-all duration-500">
+                          {getCustomerEmotion()}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600 transition-all duration-500">
+                            {currentCustomer?.satisfaction}% hài lòng
+                          </span>
+                          {satisfactionDelta !== null && (
+                            <span
+                              className={`text-xs font-bold px-2 py-1 rounded-full transition-all duration-300 ${
+                                satisfactionDelta >= 0
+                                  ? "bg-green-100 text-green-700 animate-pulse"
+                                  : "bg-red-100 text-red-700 animate-pulse"
+                              }`}
+                            >
+                              {satisfactionDelta >= 0
+                                ? `+${satisfactionDelta}`
+                                : `${satisfactionDelta}`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded uppercase font-semibold">
+                          {currentCustomer?.state.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Player Info */}
+                    <div className="text-center flex-1">
+                      <h3 className="text-lg font-semibold">
+                        Nhân viên phục vụ
+                      </h3>
+                      <div className="flex items-center justify-center gap-2 mt-2">
+                        <span className="text-2xl">😊</span>
+                        <span className="text-sm text-gray-600">
+                          Đang phục vụ
+                        </span>
+                      </div>
+                      <div className="mt-2">
+                        <span className="text-sm bg-orange-100 text-orange-800 px-2 py-1 rounded uppercase font-semibold">
+                          Nhân viên
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Input */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={playerMessage}
-                    onChange={(e) => setPlayerMessage(e.target.value)}
-                    placeholder="Nhập câu trả lời của bạn..."
-                    className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    disabled={isLoading}
-                    onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-                  />
-                  <button
-                    onClick={sendMessage}
-                    disabled={isLoading || !playerMessage.trim()}
-                    className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50"
-                  >
-                    {isLoading ? "Đang suy nghĩ..." : "Gửi"}
-                  </button>
+                {/* Chat Interface */}
+                <div className="bg-white rounded-lg shadow-lg p-4">
+                  <h3 className="text-lg font-semibold mb-3">💬 Hội thoại</h3>
+
+                  {/* Messages */}
+                  <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                    {messages.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex ${
+                          message.role === "user"
+                            ? "justify-end"
+                            : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-xs px-3 py-2 rounded-lg ${
+                            message.role === "user"
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-200 text-gray-800"
+                          }`}
+                        >
+                          <div className="text-sm  mb-1 font-semibold">
+                            {message.role === "user" ? "Bạn" : "Khách hàng"}
+                          </div>
+                          <div className="text-sm">{message.content}</div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Loading indicator */}
+                    {isLoading && (
+                      <div className="flex justify-start">
+                        <div className="max-w-xs px-3 py-2 rounded-lg bg-gray-200 text-gray-800">
+                          <div className="text-sm font-medium mb-1">
+                            Khách hàng
+                          </div>
+                          <div className="text-sm flex items-center gap-1">
+                            <span>Đang suy nghĩ</span>
+                            <div className="flex gap-1">
+                              <div className="w-1 h-1 bg-gray-600 rounded-full animate-bounce"></div>
+                              <div
+                                className="w-1 h-1 bg-gray-600 rounded-full animate-bounce"
+                                style={{ animationDelay: "0.1s" }}
+                              ></div>
+                              <div
+                                className="w-1 h-1 bg-gray-600 rounded-full animate-bounce"
+                                style={{ animationDelay: "0.2s" }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Input */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={playerMessage}
+                      onChange={(e) => setPlayerMessage(e.target.value)}
+                      placeholder="Nhập câu trả lời của bạn..."
+                      className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      disabled={isLoading}
+                      onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                    />
+                    <button
+                      onClick={sendMessage}
+                      disabled={isLoading || !playerMessage.trim()}
+                      className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50"
+                    >
+                      {isLoading ? "Đang suy nghĩ..." : "Gửi"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
