@@ -8,18 +8,13 @@ import type { ChatMessage } from "@/services/openai.service";
 enum CustomerState {
   WAITING_OUTSIDE = "waiting_outside",
   CONFIRM_SEATING = "confirm_seating",
-  SEATED_IDLE = "seated_idle",
   REQUEST_MENU = "request_menu",
   ORDERING = "ordering",
-  KITCHEN_PENDING = "kitchen_pending",
-  KITCHEN_READY = "kitchen_ready",
   SERVING = "serving",
   EATING = "eating",
   BILL_REQUESTED = "bill_requested",
   PAYING = "paying",
-  TIPPING = "tipping",
   LEAVING = "leaving",
-  END_SESSION = "end_session",
 }
 
 // Language options
@@ -353,23 +348,6 @@ export default function RestaurantGame() {
   };
 
   const createCustomerSystemPrompt = () => {
-    return `
-You are a customer in a Vietnamese restaurant. You will have conversations with the restaurant staff and can ask for information.
-
-Your goal is to go through the restaurant experience: from waiting outside, getting seated, ordering food, eating, paying, and leaving.
-
-You should:
-- Be polite and friendly
-- Ask relevant questions about the restaurant, menu, and service
-- Express your preferences and needs
-- React naturally to the staff's responses
-- Use appropriate language for your nationality
-- Follow the conversation flow naturally
-    `;
-  };
-
-  // Create system prompt for customer
-  const createCustomerPrompt = (playerMessage: string) => {
     const customerInfo = currentCustomer
       ? `
 Customer Information:
@@ -386,61 +364,53 @@ Customer Information:
 - Will tip if good service: ${
           currentCustomer.willTipIfGoodService ? "Yes" : "No"
         }
+- Will leave if treated rudely: ${currentCustomer.leaveOnRude ? "Yes" : "No"}
+
+Restaurant Information:
+- Available dishes: ${restaurantInfo.availableDishes.join(", ")}
+- Sold out dishes: ${restaurantInfo.soldOutDishes.join(", ")}
+- Empty tables: ${restaurantInfo.emptyTables.length}
+- Opening hours: ${restaurantInfo.openingHours}
 `
       : "";
 
-    return `You are a ${
-      currentCustomer?.nationality
-    } customer in a Vietnamese restaurant. You are talking to the restaurant staff (the player). 
+    return `
+You will play the role of a customer standing outside a restaurant, talking to the restaurant staff (me).
+You will have a back-and-forth conversation with me and can ask for any information.
 
 ${customerInfo}
 
-CUSTOMER PERSONALITY:
-- Personality: ${currentCustomer?.politeness}
-- Current satisfaction: ${currentCustomer?.satisfaction}%
-- Will tip if good service: ${
-      currentCustomer?.willTipIfGoodService ? "Yes" : "No"
-    }
-- Will leave if treated rudely: ${currentCustomer?.leaveOnRude ? "Yes" : "No"}
+At each state, you may ask 0…N questions (for small talk, to gather information, or to make a request), and then you must say 1 sentence that expresses the intention to move to the next state.
 
-The restaurant staff just said: "${playerMessage}"
+Goal: Go through each state until leaving the restaurant.
 
-IMPORTANT: You must respond in the following JSON format:
-{
-  "response": "Customer's response",
-  "state": "New state (waiting_outside, confirm_seating, seated_idle, request_menu, ordering, kitchen_pending, kitchen_ready, serving, eating, bill_requested, paying, tipping, leaving, end_session)",
-  "satisfaction_change": "Satisfaction change number (-30 to 30, NO + sign)",
-  "intent": "Customer's intent (greeting, request_menu, order_food, ask_question, etc.)",
-  "party_size": "Number of people in group (if any)",
-  "order_items": "Food items ordered (if any)"
+Only return JSON (pretty formatted):
+{ 
+  customer_id, 
+  state, 
+  utterance, 
+  reason?,
+  satisfaction_change
 }
+- state ∈ {WaitingOutside, Seating, WantToOrder, Order, Serving, Eating, WantToPay, Paying, Leaving}
+- utterance: a short, natural sentence (≤ 20 words) (note: utterances must always be customer's lines)
+- reason (if Leaving): a short reason
+- satisfaction_change: number from -30 to 30 (no + sign for positive numbers)
+    `;
+  };
 
-NOTE: satisfaction_change must be an integer, no + sign (e.g., 10 not +10)
+  // Create user message for customer
+  const createCustomerPrompt = (playerMessage: string) => {
+    return `The restaurant staff just said: "${playerMessage}"
 
-IMPORTANT RULES ABOUT ATTITUDE:
-- Automatically detect if staff is rude, offensive, or disrespectful to customer
-- Signs of inappropriate attitude include:
-  * Using vulgar language, swearing
-  * Being annoyed, angry
-  * Being impolite, disrespectful
-  * Rude rejection of service
-  * Inappropriate tone of voice
-  * Using inappropriate language for restaurant environment
-- If you detect inappropriate attitude:
-  - Set intent = "offended"
-  - Set state = "leaving"
-  - Set satisfaction_change to large negative number in range [-30, -10]
-  - Respond briefly showing discomfort and that you will leave immediately
-  - Use language appropriate to your nationality
-  - Example responses:
-    * Vietnamese: "Xin lỗi, thái độ như vậy thật không phù hợp. Tôi sẽ rời đi."
-    * English: "Sorry, that tone is not acceptable. I'm leaving now."
-    * Korean: "죄송하지만 그런 말투는 불편하네요. 저는 떠나겠습니다."
-    * Japanese: "申し訳ありませんが、その言い方は失礼です。失礼します。"
-    * Chinese: "抱歉，这样的语气让我不舒服。我先离开了。"
-    * Thai: "ขอโทษนะคะ/ครับ น้ำเสียงแบบนั้นไม่เหมาะสม ฉันขอลาไปก่อน"
+Please respond as the customer. Remember to:
+- Be polite and friendly
+- Use appropriate language for your nationality
+- Express your preferences and needs
+- React according to your personality
+- Follow the conversation flow naturally
 
-Respond as a ${currentCustomer?.nationality} customer:`;
+If the staff is rude or inappropriate, you may choose to leave the restaurant.`;
   };
 
   // Send message to customer
@@ -535,12 +505,13 @@ Respond as a ${currentCustomer?.nationality} customer:`;
 
         const parsed = JSON.parse(jsonStr);
         return {
-          response: parsed.response || response,
+          response: parsed.utterance || parsed.response || response,
           state: parsed.state,
           satisfaction_change: parsed.satisfaction_change || 0,
           intent: parsed.intent,
           party_size: parsed.party_size,
           order_items: parsed.order_items,
+          reason: parsed.reason,
         };
       }
     } catch (error) {
@@ -563,7 +534,21 @@ Respond as a ${currentCustomer?.nationality} customer:`;
   const updateCustomerStateFromAI = (aiResponse: any) => {
     if (!currentCustomer || !aiResponse.state) return;
 
-    const newState = aiResponse.state as CustomerState;
+    // Map state names from AI response to enum values
+    const stateMapping: { [key: string]: CustomerState } = {
+      WaitingOutside: CustomerState.WAITING_OUTSIDE,
+      Seating: CustomerState.CONFIRM_SEATING,
+      WantToOrder: CustomerState.REQUEST_MENU,
+      Order: CustomerState.ORDERING,
+      Serving: CustomerState.SERVING,
+      Eating: CustomerState.EATING,
+      WantToPay: CustomerState.BILL_REQUESTED,
+      Paying: CustomerState.PAYING,
+      Leaving: CustomerState.LEAVING,
+    };
+
+    const newState =
+      stateMapping[aiResponse.state] || (aiResponse.state as CustomerState);
     const satisfactionChange = parseInt(aiResponse.satisfaction_change) || 0;
     const newSatisfaction = Math.max(
       0,
@@ -601,11 +586,7 @@ Respond as a ${currentCustomer?.nationality} customer:`;
     }
 
     // Auto replace customer after leaving or when satisfaction hits 0
-    if (
-      newState === CustomerState.LEAVING ||
-      newState === CustomerState.END_SESSION ||
-      newSatisfaction === 0
-    ) {
+    if (newState === CustomerState.LEAVING || newSatisfaction === 0) {
       setTimeout(() => {
         const nextCustomer = initializeCustomer();
         setCurrentCustomer(nextCustomer);
