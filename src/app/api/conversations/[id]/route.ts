@@ -4,11 +4,12 @@ import { UpdateConversationRequest } from "@/types/conversation";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const conversationService = getConversationService();
-    const conversation = conversationService.getConversation(params.id);
+    const conversation = conversationService.getConversation(id);
 
     if (!conversation) {
       return NextResponse.json(
@@ -34,12 +35,13 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const updateRequest: UpdateConversationRequest = {
-      id: params.id,
+      id: id,
       ...body,
     };
 
@@ -70,11 +72,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const conversationService = getConversationService();
-    const deleted = conversationService.deleteConversation(params.id);
+    const deleted = conversationService.deleteConversation(id);
 
     if (!deleted) {
       return NextResponse.json(

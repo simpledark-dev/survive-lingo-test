@@ -4,9 +4,10 @@ import { ChatMessage } from "@/services/groq.service";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { message, audioUrl, blobName, text } = body;
 
@@ -15,7 +16,7 @@ export async function POST(
     // Thêm message vào conversation
     if (message) {
       const updatedConversation = conversationService.addMessage(
-        params.id,
+        id,
         message
       );
       if (!updatedConversation) {
@@ -30,7 +31,7 @@ export async function POST(
     if (audioUrl && blobName && text) {
       const messageId = conversationService.generateMessageId();
       const updatedConversation = conversationService.addAudioCache(
-        params.id,
+        id,
         messageId,
         audioUrl,
         blobName,
@@ -50,7 +51,7 @@ export async function POST(
       });
     }
 
-    const conversation = conversationService.getConversation(params.id);
+    const conversation = conversationService.getConversation(id);
     return NextResponse.json({
       conversation,
     });
