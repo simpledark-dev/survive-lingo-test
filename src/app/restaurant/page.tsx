@@ -384,6 +384,8 @@ At each state, you may ask 0…N questions (for small talk, to gather informatio
 
 Goal: Go through each state until leaving the restaurant.
 
+
+
 Only return JSON (pretty formatted):
 { 
   customer_id, 
@@ -403,7 +405,11 @@ Only return JSON (pretty formatted):
   const createCustomerPrompt = (playerMessage: string) => {
     return `The restaurant staff just said: "${playerMessage}"
 
+My current state: ${currentCustomer?.state}
+My current satisfaction: ${currentCustomer?.satisfaction}%
+
 Please respond as the customer. Remember to:
+- If the conversation is over, change the state to Leaving
 - Be polite and friendly
 - Use appropriate language for your nationality
 - Express your preferences and needs
