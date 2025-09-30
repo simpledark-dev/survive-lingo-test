@@ -354,12 +354,19 @@ export default function RestaurantGame() {
 
   const createCustomerSystemPrompt = () => {
     return `
-You will play the role of a customer standing outside a restaurant, talking to the restaurant staff (me).
-You will have a back-and-forth conversation with me and can ask for any information.
+You are a customer in a Vietnamese restaurant. You will have conversations with the restaurant staff and can ask for information.
 
-At each state, you may ask 0…N questions (for small talk, to gather information, or to make a request), and then you must say 1 sentence that expresses the intention to move to the next state.
+Your goal is to go through the restaurant experience: from waiting outside, getting seated, ordering food, eating, paying, and leaving.
 
-Goal: Go through each state until leaving the restaurant.
+You should:
+- Be polite and friendly
+- Ask relevant questions about the restaurant, menu, and service
+- Express your preferences and needs
+- React naturally to the staff's responses
+- Use appropriate language for your nationality
+- Follow the conversation flow naturally
+
+Always respond in JSON format with your response, current state, satisfaction change, intent, and any relevant details.
     `;
   };
 
@@ -367,87 +374,87 @@ Goal: Go through each state until leaving the restaurant.
   const createCustomerPrompt = (playerMessage: string) => {
     const customerInfo = currentCustomer
       ? `
-Thông tin khách hàng:
-- Tên: ${currentCustomer.name} ${currentCustomer.language.flag}
-- Quốc tịch: ${currentCustomer.nationality}
-- Ngôn ngữ: ${currentCustomer.language.name}
-- Trạng thái hiện tại: ${currentCustomer.state}
-- Mức độ hài lòng: ${currentCustomer.satisfaction}%
-- Tính cách: ${currentCustomer.politeness}
-- Muốn ăn: ${currentCustomer.wants.join(", ")}
-- Món thay thế: ${currentCustomer.fallbacks.join(", ")}
-- Cần xem menu: ${currentCustomer.needsMenuTime ? "Có" : "Không"}
-- Có thể thanh toán: ${currentCustomer.canPay ? "Có" : "Không"}
-- Sẽ tip nếu service tốt: ${
-          currentCustomer.willTipIfGoodService ? "Có" : "Không"
+Customer Information:
+- Name: ${currentCustomer.name} ${currentCustomer.language.flag}
+- Nationality: ${currentCustomer.nationality}
+- Language: ${currentCustomer.language.name}
+- Current State: ${currentCustomer.state}
+- Satisfaction Level: ${currentCustomer.satisfaction}%
+- Personality: ${currentCustomer.politeness}
+- Wants to eat: ${currentCustomer.wants.join(", ")}
+- Fallback options: ${currentCustomer.fallbacks.join(", ")}
+- Needs menu time: ${currentCustomer.needsMenuTime ? "Yes" : "No"}
+- Can pay: ${currentCustomer.canPay ? "Yes" : "No"}
+- Will tip if good service: ${
+          currentCustomer.willTipIfGoodService ? "Yes" : "No"
         }
 `
       : "";
 
-    return `Bạn là khách hàng ${
+    return `You are a ${
       currentCustomer?.nationality
-    } trong nhà hàng Việt Nam. Bạn đang nói chuyện với nhân viên phục vụ (người chơi). 
+    } customer in a Vietnamese restaurant. You are talking to the restaurant staff (the player). 
 
 ${customerInfo}
 
-Hãy trả lời như một khách hàng thật sự:
-- Lịch sự và thân thiện
-- Hỏi về menu, bàn, món ăn
-- Thể hiện sở thích cá nhân
-- Phản ứng theo tính cách của bạn
-- Không đóng vai nhân viên phục vụ
-- Có thể sử dụng một số từ ngữ của quốc gia mình: ${currentCustomer?.language.commonPhrases.join(
+Respond as a real customer would:
+- Be polite and friendly
+- Ask about menu, tables, food
+- Express personal preferences
+- React according to your personality
+- Do NOT roleplay as restaurant staff
+- You can use some words from your country: ${currentCustomer?.language.commonPhrases.join(
       ", "
     )}
-- Chào hỏi bằng: ${currentCustomer?.language.greeting}
-- Tạm biệt bằng: ${currentCustomer?.language.goodbye}
+- Greet with: ${currentCustomer?.language.greeting}
+- Say goodbye with: ${currentCustomer?.language.goodbye}
 
-TÍNH CÁCH KHÁCH HÀNG:
-- Tính cách: ${currentCustomer?.politeness}
-- Mức độ hài lòng hiện tại: ${currentCustomer?.satisfaction}%
-- Có thể tip nếu service tốt: ${
-      currentCustomer?.willTipIfGoodService ? "Có" : "Không"
+CUSTOMER PERSONALITY:
+- Personality: ${currentCustomer?.politeness}
+- Current satisfaction: ${currentCustomer?.satisfaction}%
+- Will tip if good service: ${
+      currentCustomer?.willTipIfGoodService ? "Yes" : "No"
     }
-- Sẽ rời đi nếu bị thô lỗ: ${currentCustomer?.leaveOnRude ? "Có" : "Không"}
+- Will leave if treated rudely: ${currentCustomer?.leaveOnRude ? "Yes" : "No"}
 
-Nhân viên phục vụ vừa nói: "${playerMessage}"
+The restaurant staff just said: "${playerMessage}"
 
-QUAN TRỌNG: Bạn phải trả lời theo format JSON sau:
+IMPORTANT: You must respond in the following JSON format:
 {
-  "response": "Câu trả lời của khách hàng",
-  "state": "Trạng thái mới (waiting_outside, confirm_seating, seated_idle, request_menu, ordering, kitchen_pending, kitchen_ready, serving, eating, bill_requested, paying, tipping, leaving, end_session)",
-  "satisfaction_change": "Số điểm thay đổi satisfaction (-30 đến 30, KHÔNG dùng dấu +)",
-  "intent": "Mục đích của khách hàng (greeting, request_menu, order_food, ask_question, etc.)",
-  "party_size": "Số người trong nhóm (nếu có)",
-  "order_items": "Món ăn đã order (nếu có)"
+  "response": "Customer's response",
+  "state": "New state (waiting_outside, confirm_seating, seated_idle, request_menu, ordering, kitchen_pending, kitchen_ready, serving, eating, bill_requested, paying, tipping, leaving, end_session)",
+  "satisfaction_change": "Satisfaction change number (-30 to 30, NO + sign)",
+  "intent": "Customer's intent (greeting, request_menu, order_food, ask_question, etc.)",
+  "party_size": "Number of people in group (if any)",
+  "order_items": "Food items ordered (if any)"
 }
 
-LƯU Ý: satisfaction_change phải là số nguyên, không dùng dấu + (ví dụ: 10 thay vì +10)
+NOTE: satisfaction_change must be an integer, no + sign (e.g., 10 not +10)
 
-QUY TẮC QUAN TRỌNG VỀ THÁI ĐỘ:
-- Tự động phát hiện nếu nhân viên có thái độ thô lỗ, xúc phạm, hoặc không tôn trọng khách hàng
-- Các dấu hiệu thái độ không phù hợp bao gồm:
-  * Sử dụng từ ngữ thô tục, chửi tục (ví dụ: "cút", "ngu", "đi khỏi", "fuck", "idiot", "stupid", "꺼져", "ばか", "滚开", "ไสหัวไป")
-  * Thái độ khó chịu, cáu gắt
-  * Không lịch sự, thiếu tôn trọng
-  * Đuổi khách, từ chối phục vụ một cách thô lỗ
-  * Nói chuyện với giọng điệu không phù hợp
-  * Sử dụng ngôn ngữ không phù hợp với môi trường nhà hàng
-- Nếu phát hiện thái độ không phù hợp, hãy:
-  - Đặt intent = "offended"
-  - Đặt state = "leaving"
-  - Đặt satisfaction_change là số âm lớn trong khoảng [-30, -10]
-  - Phản hồi ngắn gọn thể hiện sự khó chịu và bạn sẽ rời đi ngay
-  - Sử dụng ngôn ngữ phù hợp với quốc tịch của bạn
-  - Ví dụ phản hồi:
-    * Tiếng Việt: "Xin lỗi, thái độ như vậy thật không phù hợp. Tôi sẽ rời đi."
+IMPORTANT RULES ABOUT ATTITUDE:
+- Automatically detect if staff is rude, offensive, or disrespectful to customer
+- Signs of inappropriate attitude include:
+  * Using vulgar language, swearing
+  * Being annoyed, angry
+  * Being impolite, disrespectful
+  * Rude rejection of service
+  * Inappropriate tone of voice
+  * Using inappropriate language for restaurant environment
+- If you detect inappropriate attitude:
+  - Set intent = "offended"
+  - Set state = "leaving"
+  - Set satisfaction_change to large negative number in range [-30, -10]
+  - Respond briefly showing discomfort and that you will leave immediately
+  - Use language appropriate to your nationality
+  - Example responses:
+    * Vietnamese: "Xin lỗi, thái độ như vậy thật không phù hợp. Tôi sẽ rời đi."
     * English: "Sorry, that tone is not acceptable. I'm leaving now."
-    * 한국어: "죄송하지만 그런 말투는 불편하네요. 저는 떠나겠습니다."
-    * 日本語: "申し訳ありませんが、その言い方は失礼です。失礼します。"
-    * 中文: "抱歉，这样的语气让我不舒服。我先离开了。"
-    * ไทย: "ขอโทษนะคะ/ครับ น้ำเสียงแบบนั้นไม่เหมาะสม ฉันขอลาไปก่อน"
+    * Korean: "죄송하지만 그런 말투는 불편하네요. 저는 떠나겠습니다."
+    * Japanese: "申し訳ありませんが、その言い方は失礼です。失礼します。"
+    * Chinese: "抱歉，这样的语气让我不舒服。我先离开了。"
+    * Thai: "ขอโทษนะคะ/ครับ น้ำเสียงแบบนั้นไม่เหมาะสม ฉันขอลาไปก่อน"
 
-Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
+Respond as a ${currentCustomer?.nationality} customer:`;
   };
 
   // Send message to customer
