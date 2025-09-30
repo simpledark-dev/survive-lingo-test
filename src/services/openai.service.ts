@@ -7,11 +7,6 @@ export interface ChatMessage {
   content: string;
 }
 
-export interface ChatContext {
-  messages: ChatMessage[];
-  role: string;
-}
-
 export interface OpenAIChatRequest {
   model: string;
   messages: ChatMessage[];
@@ -78,8 +73,12 @@ class OpenAIService {
       const response = await this.client.chat.completions.create({
         model: request.model,
         messages: request.messages,
-        temperature: request.temperature || 0.7,
-        max_tokens: request.max_tokens || 1000,
+        temperature: request.model.includes("gpt-5")
+          ? undefined
+          : request.temperature || 0.7,
+        max_tokens: request.model.includes("gpt-5")
+          ? undefined
+          : request.max_tokens || 1000,
         top_p: request.top_p || 1,
         stream: request.stream || false,
         stop: request.stop,
@@ -101,12 +100,12 @@ class OpenAIService {
    */
   async chatWithContext(
     message: string,
-    context: ChatContext,
+    context: ChatMessage[],
     model: string = "gpt-3.5-turbo",
     options?: Partial<OpenAIChatRequest>
   ): Promise<OpenAIChatResponse> {
     const messages: ChatMessage[] = [
-      ...context.messages,
+      ...context,
       { role: "user", content: message },
     ];
 

@@ -101,12 +101,12 @@ class GroqService {
    */
   async chatWithContext(
     message: string,
-    context: ChatContext,
+    context: ChatMessage[],
     model: string = "llama-3.1-8b-instant",
     options?: Partial<GroqChatRequest>
   ): Promise<GroqChatResponse> {
     const messages: ChatMessage[] = [
-      ...context.messages,
+      ...context,
       { role: "user", content: message },
     ];
 

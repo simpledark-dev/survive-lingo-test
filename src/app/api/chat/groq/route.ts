@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAIService } from "@/services/openai.service";
-import type { OpenAIChatRequest, ChatMessage } from "@/services/openai.service";
+import { getGroqService } from "@/services/groq.service";
+import type { GroqChatRequest, ChatMessage } from "@/services/groq.service";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, context, model = "gpt-3.5-turbo", options } = body;
+    const { message, context, model = "llama-3.1-8b-instant", options } = body;
 
     if (!message) {
       return NextResponse.json(
@@ -14,11 +14,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const openaiService = getOpenAIService();
+    const groqService = getGroqService();
 
     // Nếu có context, sử dụng chatWithContext
     if (context) {
-      const response = await openaiService.chatWithContext(
+      const response = await groqService.chatWithContext(
         message,
         context as ChatMessage[],
         model,
@@ -28,16 +28,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Nếu không có context, tạo request đơn giản
-    const chatRequest: OpenAIChatRequest = {
+    const chatRequest: GroqChatRequest = {
       model,
       messages: [{ role: "user", content: message }],
       ...options,
     };
 
-    const response = await openaiService.chat(chatRequest);
+    const response = await groqService.chat(chatRequest);
     return NextResponse.json(response);
   } catch (error) {
-    console.error("API Error:", error);
+    console.error("Groq API Error:", error);
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -50,11 +50,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const openaiService = getOpenAIService();
-    const models = await openaiService.getModels();
+    const groqService = getGroqService();
+    const models = await groqService.getModels();
     return NextResponse.json({ models });
   } catch (error) {
-    console.error("API Error:", error);
+    console.error("Groq API Error:", error);
     return NextResponse.json(
       {
         error: "Failed to fetch models",

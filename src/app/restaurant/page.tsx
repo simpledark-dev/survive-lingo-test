@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import type { ChatMessage } from "@/services/openai.service";
 
@@ -130,11 +130,62 @@ const customerNames: { [key: string]: string[] } = {
   "Thái Lan": ["สมชาย", "สมหญิง", "วิชัย", "มาลี"],
 };
 
+// AI Model options
+interface AIModel {
+  id: string;
+  name: string;
+  provider: "openai" | "groq";
+}
+
+const aiModels: AIModel[] = [
+  {
+    id: "gpt-3.5-turbo",
+    name: "GPT-3.5 Turbo",
+    provider: "openai",
+  },
+  {
+    id: "gpt-4",
+    name: "GPT-4",
+    provider: "openai",
+  },
+  {
+    id: "gpt-4-turbo",
+    name: "GPT-4 Turbo",
+    provider: "openai",
+  },
+  {
+    id: "gpt-4o-mini",
+    name: "GPT-4o Mini",
+    provider: "openai",
+  },
+  {
+    id: "gpt-5-mini",
+    name: "GPT-5 Mini",
+    provider: "openai",
+  },
+  {
+    id: "gpt-5-nano",
+    name: "GPT-5 Nano",
+    provider: "openai",
+  },
+  {
+    id: "llama-3.1-8b-instant",
+    name: "Llama 3.1 8B Instant",
+    provider: "groq",
+  },
+  {
+    id: "gemma2-9b-it",
+    name: "Gemma2 9B IT",
+    provider: "groq",
+  },
+];
+
 export default function RestaurantGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageOption>(
     languageOptions[0]
   );
+  const [selectedModel, setSelectedModel] = useState<AIModel>(aiModels[0]);
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
   const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo>({
     availableDishes: ["Phở Bò", "Bún Bò Huế", "Cơm Tấm", "Bánh Mì", "Gỏi Cuốn"],
@@ -153,6 +204,15 @@ export default function RestaurantGame() {
   );
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ttsCache, setTtsCache] = useState<Map<string, string>>(new Map());
+
+  // Ref for auto scroll
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto scroll to bottom when new messages arrive or loading state changes
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading, gameStarted, currentCustomer]);
 
   // Play TTS for given text with caching
   const handleSpeak = async (text: string) => {
@@ -292,6 +352,28 @@ export default function RestaurantGame() {
     setMessages([openingMessage]);
   };
 
+  const createCustomerSystemPrompt = () => {
+    return `
+You will play the role of a customer standing outside a restaurant, talking to the restaurant staff (me).
+You will have a back-and-forth conversation with me and can ask for any information.
+
+At each state, you may ask 0…N questions (for small talk, to gather information, or to make a request), and then you must say 1 sentence that expresses the intention to move to the next state.
+
+Goal: Go through each state until leaving the restaurant.
+
+Only return JSON (pretty formatted):
+{ 
+  customer_id, 
+  state, 
+  utterance, 
+  reason? 
+}
+- state ∈ {WaitingOutside, Seating, WantToOrder, Order, Serving, Eating, WantToPay, Paying, Leaving}
+- utterance: a short, natural sentence (≤ 20 words) (note: utterances must always be customer’s lines)
+- reason (if Leaving): a short reason
+    `;
+  };
+
   // Create system prompt for customer
   const createCustomerPrompt = (playerMessage: string) => {
     const customerInfo = currentCustomer
@@ -392,20 +474,32 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
     setPlayerMessage("");
     setIsLoading(true);
 
+    // Focus back to input after sending
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+
     // AI sẽ tự phát hiện và phản ứng với thái độ thô lỗ
 
     try {
-      // Call Groq API to get customer response
-      const response = await fetch("/api/chat", {
+      // Determine API endpoint based on provider
+      const apiEndpoint =
+        selectedModel.provider === "groq" ? "/api/chat/groq" : "/api/chat";
+
+      // Call appropriate API to get customer response
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: createCustomerPrompt(playerMessage),
-          model: "gpt-3.5-turbo",
-          context: {
-            messages: messages,
-            role: "assistant",
-          },
+          model: selectedModel.id,
+          context: [
+            {
+              content: createCustomerSystemPrompt(),
+              role: "system",
+            },
+            ...messages,
+          ] as ChatMessage[],
         }),
       });
 
@@ -434,6 +528,10 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
       console.error("Error:", error);
     } finally {
       setIsLoading(false);
+      // Focus back to input after loading ends
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -647,12 +745,37 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
             </div>
           </div>
 
+          {/* AI Model Selection */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4">Chọn AI Agent:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              {aiModels.map((model) => (
+                <button
+                  key={model.id}
+                  onClick={() => setSelectedModel(model)}
+                  className={`p-4 rounded-lg border-2 transition-colors text-left ${
+                    selectedModel.id === model.id
+                      ? "border-blue-500 bg-blue-100"
+                      : "border-gray-300 hover:border-blue-300"
+                  }`}
+                >
+                  <div className="text-base text-gray-600 font-semibold mb-1 text-center">
+                    {model.name}
+                  </div>
+                  <div className="text-xs text-gray-500 text-center">
+                    {model.provider === "openai" ? "🤖 OpenAI" : "⚡ Groq"}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             onClick={startGame}
             className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors"
           >
             Bắt đầu game với khách hàng {selectedLanguage.flag}{" "}
-            {selectedLanguage.country}
+            {selectedLanguage.country} và {selectedModel.name}
           </button>
         </div>
       </div>
@@ -720,6 +843,10 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
                   <div className="text-sm">
                     <span className="font-semibold">Hài lòng:</span>{" "}
                     {currentCustomer?.satisfaction}%
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-semibold">AI:</span>{" "}
+                    {selectedModel.name}
                   </div>
                   <button
                     onClick={() => setShowDebug(!showDebug)}
@@ -996,7 +1123,7 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
                   <h3 className="text-lg font-semibold mb-3">💬 Hội thoại</h3>
 
                   {/* Messages */}
-                  <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                  <div className="space-y-3 mb-4 max-h-80 overflow-y-auto">
                     {messages.map((message, index) => (
                       <div
                         key={index}
@@ -1025,11 +1152,10 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
                     {isLoading && (
                       <div className="flex justify-start">
                         <div className="max-w-xs px-3 py-2 rounded-lg bg-gray-200 text-gray-800">
-                          <div className="text-sm font-medium mb-1">
+                          <div className="text-sm font-semibold mb-1">
                             Khách hàng
                           </div>
                           <div className="text-sm flex items-center gap-1">
-                            <span>Đang suy nghĩ</span>
                             <div className="flex gap-1">
                               <div className="w-1 h-1 bg-gray-600 rounded-full animate-bounce"></div>
                               <div
@@ -1045,18 +1171,27 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
                         </div>
                       </div>
                     )}
+
+                    {/* Auto scroll anchor */}
+                    <div ref={messagesEndRef} />
                   </div>
 
                   {/* Input */}
                   <div className="flex gap-2">
                     <input
+                      ref={inputRef}
                       type="text"
                       value={playerMessage}
                       onChange={(e) => setPlayerMessage(e.target.value)}
                       placeholder="Nhập câu trả lời của bạn..."
                       className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                       disabled={isLoading}
-                      onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          sendMessage();
+                        }
+                      }}
                     />
                     <button
                       onClick={sendMessage}
