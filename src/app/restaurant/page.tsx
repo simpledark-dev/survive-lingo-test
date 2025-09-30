@@ -365,8 +365,6 @@ You should:
 - React naturally to the staff's responses
 - Use appropriate language for your nationality
 - Follow the conversation flow naturally
-
-Always respond in JSON format with your response, current state, satisfaction change, intent, and any relevant details.
     `;
   };
 
@@ -396,18 +394,6 @@ Customer Information:
     } customer in a Vietnamese restaurant. You are talking to the restaurant staff (the player). 
 
 ${customerInfo}
-
-Respond as a real customer would:
-- Be polite and friendly
-- Ask about menu, tables, food
-- Express personal preferences
-- React according to your personality
-- Do NOT roleplay as restaurant staff
-- You can use some words from your country: ${currentCustomer?.language.commonPhrases.join(
-      ", "
-    )}
-- Greet with: ${currentCustomer?.language.greeting}
-- Say goodbye with: ${currentCustomer?.language.goodbye}
 
 CUSTOMER PERSONALITY:
 - Personality: ${currentCustomer?.politeness}
