@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
-import { getGroqService } from "@/services/groq.service";
-import type { GroqChatRequest, ChatContext } from "@/services/groq.service";
+import { getOpenAIService } from "@/services/openai.service";
+import type { OpenAIChatRequest, ChatContext } from "@/services/openai.service";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, context, model = "llama-3.1-8b-instant", options } = body;
+    const { message, context, model = "gpt-3.5-turbo", options } = body;
 
     if (!message) {
       return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const groqService = getGroqService();
+    const openaiService = getOpenAIService();
 
     // Tạo stream response
     const stream = new ReadableStream({
@@ -31,15 +31,15 @@ export async function POST(request: NextRequest) {
             messages = [{ role: "user" as const, content: message }];
           }
 
-          const chatRequest: GroqChatRequest = {
+          const chatRequest: OpenAIChatRequest = {
             model,
             messages,
             stream: true,
             ...options,
           };
 
-          // Stream response từ Groq
-          for await (const chunk of groqService.streamChat(chatRequest)) {
+          // Stream response từ OpenAI
+          for await (const chunk of openaiService.streamChat(chatRequest)) {
             const data = JSON.stringify({ content: chunk });
             controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
           }

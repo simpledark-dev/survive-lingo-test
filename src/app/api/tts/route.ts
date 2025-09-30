@@ -1,22 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGroqService } from "@/services/groq.service";
+import { getOpenAIService } from "@/services/openai.service";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      text,
-      voice = "Fritz-PlayAI",
-      model = "playai-tts",
-      speed = 1.0,
-    } = body;
+    const { text, voice = "alloy", model = "tts-1", speed = 1.0 } = body;
 
     if (!text) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    const groqService = getGroqService();
-    const ttsResponse = await groqService.speakText(text, voice, model);
+    const openaiService = getOpenAIService();
+    const ttsResponse = await openaiService.speakText(text, voice, model);
 
     // Trả về audio URL từ Azure Storage
     return NextResponse.json({

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGroqService } from "@/services/groq.service";
-import type { GroqChatRequest, ChatContext } from "@/services/groq.service";
+import { getOpenAIService } from "@/services/openai.service";
+import type { OpenAIChatRequest, ChatContext } from "@/services/openai.service";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, context, model = "llama-3.1-8b-instant", options } = body;
+    const { message, context, model = "gpt-3.5-turbo", options } = body;
 
     if (!message) {
       return NextResponse.json(
@@ -14,11 +14,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const groqService = getGroqService();
+    const openaiService = getOpenAIService();
 
     // Nếu có context, sử dụng chatWithContext
     if (context) {
-      const response = await groqService.chatWithContext(
+      const response = await openaiService.chatWithContext(
         message,
         context as ChatContext,
         model,
@@ -28,13 +28,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Nếu không có context, tạo request đơn giản
-    const chatRequest: GroqChatRequest = {
+    const chatRequest: OpenAIChatRequest = {
       model,
       messages: [{ role: "user", content: message }],
       ...options,
     };
 
-    const response = await groqService.chat(chatRequest);
+    const response = await openaiService.chat(chatRequest);
     return NextResponse.json(response);
   } catch (error) {
     console.error("API Error:", error);
@@ -50,8 +50,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const groqService = getGroqService();
-    const models = await groqService.getModels();
+    const openaiService = getOpenAIService();
+    const models = await openaiService.getModels();
     return NextResponse.json({ models });
   } catch (error) {
     console.error("API Error:", error);

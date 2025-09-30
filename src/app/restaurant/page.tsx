@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import type { ChatMessage } from "@/services/groq.service";
+import type { ChatMessage } from "@/services/openai.service";
 
 // Customer states
 enum CustomerState {
@@ -199,8 +199,8 @@ export default function RestaurantGame() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text,
-          voice: "Fritz-PlayAI",
-          model: "playai-tts",
+          voice: "alloy",
+          model: "tts-1",
         }),
       });
       if (!res.ok) throw new Error("TTS request failed");
@@ -451,7 +451,7 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: createCustomerPrompt(playerMessage),
-          model: "llama-3.1-8b-instant",
+          model: "gpt-3.5-turbo",
           context: {
             messages: messages,
             role: "assistant",
