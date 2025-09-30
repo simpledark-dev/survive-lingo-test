@@ -232,63 +232,6 @@ export default function RestaurantGame() {
     }
   };
 
-  // Detect rude/offensive language from player
-  const isRude = (text: string) => {
-    const rudeWords = [
-      // Vietnamese
-      "cút",
-      "đồ ngu",
-      "địt",
-      "đm",
-      "đồ điên",
-      "mẹ mày",
-      "cmm",
-      "biến đi",
-      // English
-      "fuck",
-      "idiot",
-      "stupid",
-      "moron",
-      "get lost",
-      "go away",
-      // Korean
-      "꺼져",
-      "멍청",
-      "바보",
-      // Japanese
-      "消えろ",
-      "ばか",
-      "くそ",
-      // Chinese
-      "滚开",
-      "笨蛋",
-      "傻子",
-      // Thai
-      "ไสหัวไป",
-      "โง่",
-    ];
-    const lower = text.toLowerCase();
-    return rudeWords.some((w) => lower.includes(w));
-  };
-
-  const getOffendedMessage = () => {
-    switch (selectedLanguage.code) {
-      case "vi":
-        return "Xin lỗi, thái độ như vậy thật không phù hợp. Tôi sẽ rời đi.";
-      case "ko":
-        return "죄송하지만 그런 말투는 불편하네요. 저는 떠나겠습니다.";
-      case "ja":
-        return "申し訳ありませんが、その言い方は失礼です。失礼します。";
-      case "zh":
-        return "抱歉，这样的语气让我不舒服。我先离开了。";
-      case "th":
-        return "ขอโทษนะคะ/ครับ น้ำเสียงแบบนั้นไม่เหมาะสม ฉันขอลาไปก่อน";
-      case "en":
-      default:
-        return "Sorry, that tone is not acceptable. I'm leaving now.";
-    }
-  };
-
   // Initialize customer
   const initializeCustomer = (): Customer => {
     const names = customerNames[selectedLanguage.country];
@@ -388,6 +331,14 @@ Hãy trả lời như một khách hàng thật sự:
 - Chào hỏi bằng: ${currentCustomer?.language.greeting}
 - Tạm biệt bằng: ${currentCustomer?.language.goodbye}
 
+TÍNH CÁCH KHÁCH HÀNG:
+- Tính cách: ${currentCustomer?.politeness}
+- Mức độ hài lòng hiện tại: ${currentCustomer?.satisfaction}%
+- Có thể tip nếu service tốt: ${
+      currentCustomer?.willTipIfGoodService ? "Có" : "Không"
+    }
+- Sẽ rời đi nếu bị thô lỗ: ${currentCustomer?.leaveOnRude ? "Có" : "Không"}
+
 Nhân viên phục vụ vừa nói: "${playerMessage}"
 
 QUAN TRỌNG: Bạn phải trả lời theo format JSON sau:
@@ -403,11 +354,27 @@ QUAN TRỌNG: Bạn phải trả lời theo format JSON sau:
 LƯU Ý: satisfaction_change phải là số nguyên, không dùng dấu + (ví dụ: 10 thay vì +10)
 
 QUY TẮC QUAN TRỌNG VỀ THÁI ĐỘ:
-- Nếu nhân viên nói thô lỗ, xúc phạm (ví dụ: "cút", "ngu", "đi khỏi", "fuck", "idiot", "stupid", các từ chửi tục bằng tiếng Việt/Anh/Hàn/Nhật/Trung/Thái), hãy:
+- Tự động phát hiện nếu nhân viên có thái độ thô lỗ, xúc phạm, hoặc không tôn trọng khách hàng
+- Các dấu hiệu thái độ không phù hợp bao gồm:
+  * Sử dụng từ ngữ thô tục, chửi tục (ví dụ: "cút", "ngu", "đi khỏi", "fuck", "idiot", "stupid", "꺼져", "ばか", "滚开", "ไสหัวไป")
+  * Thái độ khó chịu, cáu gắt
+  * Không lịch sự, thiếu tôn trọng
+  * Đuổi khách, từ chối phục vụ một cách thô lỗ
+  * Nói chuyện với giọng điệu không phù hợp
+  * Sử dụng ngôn ngữ không phù hợp với môi trường nhà hàng
+- Nếu phát hiện thái độ không phù hợp, hãy:
   - Đặt intent = "offended"
   - Đặt state = "leaving"
   - Đặt satisfaction_change là số âm lớn trong khoảng [-30, -10]
-  - Phản hồi ngắn gọn thể hiện sự khó chịu và bạn sẽ rời đi ngay.
+  - Phản hồi ngắn gọn thể hiện sự khó chịu và bạn sẽ rời đi ngay
+  - Sử dụng ngôn ngữ phù hợp với quốc tịch của bạn
+  - Ví dụ phản hồi:
+    * Tiếng Việt: "Xin lỗi, thái độ như vậy thật không phù hợp. Tôi sẽ rời đi."
+    * English: "Sorry, that tone is not acceptable. I'm leaving now."
+    * 한국어: "죄송하지만 그런 말투는 불편하네요. 저는 떠나겠습니다."
+    * 日本語: "申し訳ありませんが、その言い方は失礼です。失礼します。"
+    * 中文: "抱歉，这样的语气让我不舒服。我先离开了。"
+    * ไทย: "ขอโทษนะคะ/ครับ น้ำเสียงแบบนั้นไม่เหมาะสม ฉันขอลาไปก่อน"
 
 Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
   };
@@ -425,24 +392,7 @@ Hãy trả lời như khách hàng ${currentCustomer?.nationality}:`;
     setPlayerMessage("");
     setIsLoading(true);
 
-    // Client-side rude detection: force customer to leave immediately
-    if (isRude(userMessage.content)) {
-      const assistantMessage: ChatMessage = {
-        role: "assistant",
-        content: getOffendedMessage(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      // Apply strong negative satisfaction and leaving state
-      const aiLike = {
-        state: CustomerState.LEAVING,
-        satisfaction_change: -20,
-        intent: "offended",
-      } as any;
-      updateCustomerStateFromAI(aiLike);
-      setIsLoading(false);
-      return;
-    }
+    // AI sẽ tự phát hiện và phản ứng với thái độ thô lỗ
 
     try {
       // Call Groq API to get customer response
