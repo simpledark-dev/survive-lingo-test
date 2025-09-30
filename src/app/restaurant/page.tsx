@@ -360,17 +360,6 @@ You will have a back-and-forth conversation with me and can ask for any informat
 At each state, you may ask 0…N questions (for small talk, to gather information, or to make a request), and then you must say 1 sentence that expresses the intention to move to the next state.
 
 Goal: Go through each state until leaving the restaurant.
-
-Only return JSON (pretty formatted):
-{ 
-  customer_id, 
-  state, 
-  utterance, 
-  reason? 
-}
-- state ∈ {WaitingOutside, Seating, WantToOrder, Order, Serving, Eating, WantToPay, Paying, Leaving}
-- utterance: a short, natural sentence (≤ 20 words) (note: utterances must always be customer’s lines)
-- reason (if Leaving): a short reason
     `;
   };
 
