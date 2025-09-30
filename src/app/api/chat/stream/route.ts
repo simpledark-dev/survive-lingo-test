@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getOpenAIService } from "@/services/openai.service";
-import type { OpenAIChatRequest, ChatContext } from "@/services/openai.service";
+import type { OpenAIChatRequest, ChatMessage } from "@/services/openai.service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
           if (context) {
             messages = [
-              ...(context as ChatContext).messages,
+              ...(context as ChatMessage[]),
               { role: "user" as const, content: message },
             ];
           } else {
